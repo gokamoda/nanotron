@@ -573,7 +573,11 @@ class DistributedTrainer:
                 # Training Logs
                 # Track consumed tokens for all dataset folders in current stage
                 if hasattr(self.current_base_dl, "dataset"):
-                    consumption_stats = self.current_base_dl.dataset.get_consumption_stats()
+                    if hasattr(self.current_base_dl.dataset, "get_consumption_stats"):
+                        consumption_stats = self.current_base_dl.dataset.get_consumption_stats()
+                    else:
+                        consumption_stats = {}
+                    # consumption_stats = self.current_base_dl.dataset.get_consumption_stats()
                     current_stage = self.metadata.data_stages[self.metadata.last_stage_idx]
 
                     # Update consumed tokens for all folders in the consumption stats
@@ -884,13 +888,13 @@ class DistributedTrainer:
 
             # Log consumption statistics
             if hasattr(self.current_base_dl, "dataset"):
-                for dataset_name, stats in self.current_base_dl.dataset.get_consumption_stats().items():
-                    basic_log_entries.extend(
-                        [
-                            LogItem(f"dataloader/consumed_tokens/{dataset_name}", stats["tokens"], "human_format"),
-                        ]
-                    )
-
+                if hasattr(self.current_base_dl.dataset, "get_consumption_stats"):
+                    for dataset_name, stats in self.current_base_dl.dataset.get_consumption_stats().items():
+                        basic_log_entries.extend(
+                            [
+                                LogItem(f"dataloader/consumed_tokens/{dataset_name}", stats["tokens"], "human_format"),
+                            ]
+                        )
         # WandB logging - determine if this rank should log to wandb
         should_log_to_wandb = wandb is not None and (
             (tp_size > 1 and dp_cp_rank == 0 and self.metrics_logging.log_level > 0)
